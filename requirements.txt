@@ -1,0 +1,6 @@
+kaggle
+pyspark
+pandas
+sqlalchemy
+psycopg2-binary
+python-dotenv
