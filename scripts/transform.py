@@ -1,8 +1,8 @@
 import os
+import sys 
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, sum, round, avg
-
 
 load_dotenv()
 
@@ -37,6 +37,24 @@ def run_transform():
             round(avg("gdp_per_capita"), 2).alias("avg_gdp_per_capita")
         )
         .orderBy("country", "year"))
+
+    print("[*] Menjalankan Validasi Data Quality...")
+    
+    total_rows = data_mart.count()
+    if total_rows == 0:
+        print("[ERROR] Data Mart kosong! Proses Load dibatalkan.")
+        return 
+    null_data = data_mart.filter(col("country").isNull()).count()
+    if null_data > 0:
+        print(f"[FIX] Ditemukan {null_data} data NULL pada kolom country. Menghapus data tersebut...")
+        data_mart = data_mart.dropna(subset=["country"])
+
+    negative_check = data_mart.filter(col("total_suicides") < 0).count()
+    if negative_check > 0:
+        print(f"[ERROR] Ditemukan {negative_check} data dengan angka negatif! Load dibatalkan.")
+        return
+
+    print(f"[OK] Validasi berhasil. {total_rows} baris siap di-load.")
 
     print("[*] Preview Data Mart (10 baris):")
     data_mart.show(10, truncate=False)
